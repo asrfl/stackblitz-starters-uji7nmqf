@@ -1,0 +1,184 @@
+/* Polices embarquees avec l'application : le rendu ne depend d'aucun CDN,
+   et le jardin garde son ecriture meme hors ligne. */
+@import '@fontsource/caveat/latin-500.css';
+@import '@fontsource/caveat/latin-600.css';
+@import '@fontsource/caveat/latin-700.css';
+@import '@fontsource/lora/latin-400.css';
+@import '@fontsource/lora/latin-400-italic.css';
+@import '@fontsource/lora/latin-500.css';
+@import '@fontsource/lora/latin-600.css';
+@import '@fontsource-variable/playfair-display/wght.css';
+@import '@fontsource-variable/playfair-display/wght-italic.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Grain de papier : un vrai bruit fractal SVG, pas un aplat. */
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-papier text-encre font-corps antialiased;
+    /* Lavis d'aquarelle : deux floraisons diffuses, sauge et corail. */
+    background-image:
+      radial-gradient(60rem 42rem at 12% -8%, rgba(185, 205, 182, 0.5), transparent 62%),
+      radial-gradient(48rem 40rem at 92% 4%, rgba(240, 198, 188, 0.38), transparent 60%),
+      radial-gradient(70rem 46rem at 50% 118%, rgba(198, 212, 217, 0.42), transparent 64%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  /* Le grain recouvre toute la page, en fondu multiplie : le papier respire. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: var(--grain);
+    opacity: 0.28;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  h1, h2, h3 {
+    @apply font-titre text-encre-fonce;
+    letter-spacing: 0.005em;
+  }
+
+  ::selection {
+    background: rgba(185, 205, 182, 0.75);
+    color: #563e30;
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(122, 92, 74, 0.24);
+    border-radius: 99px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  /* Rien ne sursaute : chaque transition prend son temps. */
+  button, a, input, textarea, select, .feuille {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: 480ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  :focus-visible {
+    outline: 2px dashed theme('colors.sauge.DEFAULT');
+    outline-offset: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Feuille de papier posee : grain propre, bord irregulier, ombre diffuse. */
+  .feuille {
+    @apply relative shadow-feuille;
+    border: 1px solid rgba(122, 92, 74, 0.24);
+    /* fibre du papier + tres leger bombement de la feuille sous la lumiere */
+    background-color: #FBF7EE;
+    background-image:
+      linear-gradient(168deg, rgba(255, 252, 245, 0.95), rgba(240, 232, 216, 0.55)),
+      var(--grain);
+    background-blend-mode: normal, multiply;
+  }
+
+  /* Fil du bord superieur : la feuille accroche la lumiere du matin. */
+  .feuille::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 1px 0 rgba(255, 253, 248, 0.9);
+    pointer-events: none;
+  }
+
+  .feuille-creuse {
+    @apply bg-papier-creuse/70 shadow-creuse;
+    border: 1px dashed rgba(122, 92, 74, 0.28);
+  }
+
+  /* Bouton principal : corail poudre, se souleve doucement au survol. */
+  .bouton {
+    @apply px-6 py-3 font-titre text-[0.98rem] tracking-wide bg-corail text-papier-clair
+           rounded-caillou shadow-posee;
+    border: 1px solid rgba(190, 110, 96, 0.55);
+  }
+  .bouton:hover:not(:disabled) {
+    @apply bg-corail-fonce shadow-souleve;
+    transform: translateY(-2px) rotate(-0.4deg);
+  }
+  .bouton:active:not(:disabled) {
+    transform: translateY(0) rotate(0deg);
+  }
+  .bouton:disabled {
+    @apply bg-papier-ombre text-encre-pale shadow-none cursor-not-allowed;
+    border-color: rgba(122, 92, 74, 0.2);
+  }
+
+  .bouton-sauge {
+    @apply bouton bg-sauge;
+    border-color: rgba(78, 108, 83, 0.55);
+  }
+  .bouton-sauge:hover:not(:disabled) {
+    @apply bg-sauge-fonce;
+  }
+
+  /* Bouton discret : un simple mot souligne a la main. */
+  .bouton-nu {
+    @apply px-3 py-1.5 font-main text-lg text-encre rounded-caillou;
+    border: 1px solid transparent;
+  }
+  .bouton-nu:hover {
+    @apply bg-sauge-brume/70 text-encre-fonce;
+    border-color: rgba(107, 142, 111, 0.35);
+  }
+
+  .champ {
+    @apply w-full bg-papier/80 text-encre-fonce font-corps px-4 py-3 rounded-caillou
+           placeholder:text-encre-pale/80 shadow-creuse;
+    border: 1px solid rgba(122, 92, 74, 0.28);
+  }
+  .champ:focus {
+    @apply outline-none bg-papier-clair;
+    border-color: theme('colors.sauge.DEFAULT');
+    box-shadow: inset 0 2px 8px -4px rgba(86, 62, 48, 0.3), 0 0 0 4px rgba(185, 205, 182, 0.35);
+  }
+
+  /* Annotation en marge, ecrite au crayon. */
+  .etiquette {
+    @apply font-main text-[1.12rem] leading-none text-encre-pale;
+  }
+
+  .filet {
+    @apply block h-px w-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(122, 92, 74, 0.35) 18%,
+      rgba(122, 92, 74, 0.35) 82%,
+      transparent
+    );
+  }
+}
