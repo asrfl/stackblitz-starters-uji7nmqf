@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
+import { useI18n } from '../lib/i18n';
 import { Feuille } from './Illustrations';
 
 export default function Carnet({ contacts, onChange, user, cities, onVille }) {
+  const { t } = useI18n();
   const [pseudo, setPseudo] = useState('');
   const [erreur, setErreur] = useState(null);
   const [occupe, setOccupe] = useState(false);
@@ -28,24 +30,22 @@ export default function Carnet({ contacts, onChange, user, cities, onVille }) {
   }
 
   return (
-    <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-[1.2fr_1fr]">
+    <div className="mx-auto grid max-w-4xl items-start gap-8 md:grid-cols-[1.2fr_1fr]">
       <section className="feuille rounded-feuille px-8 py-8">
-        <h2 className="font-titre text-2xl">Carnet d’adresses</h2>
-        <p className="etiquette mt-1">
-          Les gens à qui vous pouvez confier un escargot.
-        </p>
+        <h2 className="font-titre text-2xl">{t('carnet.titre')}</h2>
+        <p className="etiquette mt-1">{t('carnet.sousTitre')}</p>
 
         <form onSubmit={ajouter} className="mt-6 flex flex-wrap gap-3">
           <input
             className="champ flex-1"
             value={pseudo}
             onChange={(e) => setPseudo(e.target.value)}
-            placeholder="Pseudo de la personne"
+            placeholder={t('carnet.champ')}
             maxLength={24}
             required
           />
           <button className="bouton-sauge" disabled={occupe || !pseudo.trim()}>
-            Ajouter
+            {t('carnet.ajouter')}
           </button>
         </form>
 
@@ -59,23 +59,21 @@ export default function Carnet({ contacts, onChange, user, cities, onVille }) {
           {contacts.length === 0 && (
             <li className="feuille-creuse rounded-galet px-5 py-6 text-center">
               <Feuille className="mx-auto h-8 w-6 text-sauge opacity-60" />
-              <p className="etiquette mt-2">
-                Carnet vide. Ajoutez le pseudo d’une personne déjà inscrite.
-              </p>
+              <p className="etiquette mt-2">{t('carnet.vide')}</p>
             </li>
           )}
           {contacts.map((c, i) => (
             <li
               key={c.id}
-              className="flex items-center justify-between gap-4 rounded-galet border border-encre/15 bg-papier/70 px-5 py-3.5 animate-eclot"
+              className="flex animate-eclot items-center justify-between gap-4 rounded-galet border border-encre/15 bg-papier/70 px-5 py-3.5"
               style={{ animationDelay: `${i * 70}ms` }}
             >
               <span>
                 <span className="block font-titre text-lg text-encre-fonce">{c.pseudo}</span>
-                <span className="etiquette">{c.city || 'ville inconnue'}</span>
+                <span className="etiquette">{c.city || t('carnet.villeInconnue')}</span>
               </span>
               <button onClick={() => retirer(c.id)} className="bouton-nu text-base text-encre-pale">
-                retirer
+                {t('carnet.retirer')}
               </button>
             </li>
           ))}
@@ -83,15 +81,15 @@ export default function Carnet({ contacts, onChange, user, cities, onVille }) {
       </section>
 
       <section className="feuille h-fit rounded-petale px-8 py-8">
-        <h2 className="font-titre text-xl">Votre adresse</h2>
-        <p className="etiquette mt-1">Le point de départ de vos escargots.</p>
+        <h2 className="font-titre text-xl">{t('carnet.adresseTitre')}</h2>
+        <p className="etiquette mt-1">{t('carnet.adresseSousTitre')}</p>
         <select
           className="champ mt-5"
           value={user.city || ''}
           onChange={(e) => onVille(e.target.value)}
         >
           <option value="" disabled>
-            Choisir une ville
+            {t('commun.choisirVille')}
           </option>
           {cities.map((c) => (
             <option key={c.name} value={c.name}>
@@ -100,8 +98,7 @@ export default function Carnet({ contacts, onChange, user, cities, onVille }) {
           ))}
         </select>
         <p className="mt-5 font-corps text-[0.92rem] italic leading-relaxed text-encre-pale">
-          Vous pouvez déménager quand vous voulez : les escargots déjà partis
-          gardent le trajet pour lequel ils se sont engagés.
+          {t('carnet.adresseNote')}
         </p>
       </section>
     </div>

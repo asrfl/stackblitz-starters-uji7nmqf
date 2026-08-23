@@ -7,6 +7,7 @@ import { messageRoutes } from './routes/messages.routes.js';
 import { metaRoutes } from './routes/meta.routes.js';
 import { tick } from './messages.js';
 import { weatherMode } from './weather.js';
+import { echec } from './i18n.js';
 
 const PORT = Number(process.env.PORT || 3001);
 const TICK_MS = Number(process.env.TICK_MS || 15000);
@@ -22,11 +23,11 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api', metaRoutes);
 
-app.use('/api', (_req, res) => res.status(404).json({ error: 'Rien par ici.' }));
+app.use('/api', (req, res) => echec(res, 404, req, 'route.inconnue'));
 
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
   console.error('[escargot]', err);
-  res.status(500).json({ error: 'Un incident dans le potager.' });
+  echec(res, 500, req, 'serveur.incident');
 });
 
 // Le ticker fait vivre les trajets meme quand personne ne regarde :

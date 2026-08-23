@@ -4,8 +4,10 @@ import { getWeather, HIBERNATION_TEMP } from './weather.js';
 
 const WEATHER_REFRESH_MS = 4 * 60 * 1000;
 
-const scaleLabel = (scale) =>
-  SCALES.find((s) => Math.abs(s.scale - scale) < 1e-12)?.label ?? `x${scale}`;
+// L'identifiant d'échelle voyage brut : c'est le client qui l'habille, dans
+// la langue qu'il affiche. Le serveur ne devine pas la langue du lecteur ici.
+const scaleId = (scale) =>
+  SCALES.find((s) => Math.abs(s.scale - scale) < 1e-12)?.id ?? null;
 
 const selectMessage = `
   SELECT m.*, s.pseudo AS sender_pseudo, r.pseudo AS recipient_pseudo
@@ -39,7 +41,7 @@ export function serialize(row, viewerId, now = Date.now()) {
     distanceM: row.distance_m,
     crawlDistanceM: row.crawl_distance_m,
     scale: row.scale,
-    scaleLabel: scaleLabel(row.scale),
+    scaleId: scaleId(row.scale),
     status: row.status,
     hibernating: state.hibernating,
     progress: state.progress,

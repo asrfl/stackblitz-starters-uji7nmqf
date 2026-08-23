@@ -4,6 +4,7 @@ import { requireUser } from '../auth.js';
 import { findCity, haversine } from '../cities.js';
 import { findScale, travelDurationMs, rollLostProgress, SNAIL_SPEED_MPS } from '../snail.js';
 import { serialize, getMessageRow, listMessageRows, tick } from '../messages.js';
+import { echec } from '../i18n.js';
 
 export const messageRoutes = Router();
 
@@ -15,20 +16,18 @@ messageRoutes.use(requireUser);
 
 messageRoutes.post('/', (req, res) => {
   const body = String(req.body?.body ?? '').trim();
-  if (!body) return res.status(400).json({ error: 'Un message vide ne mérite pas un escargot.' });
-  if (body.length > MAX_BODY) {
-    return res.status(400).json({ error: `${MAX_BODY} caractères maximum, l’escargot ne porte pas plus.` });
-  }
+  if (!body) return echec(res, 400, req, 'message.vide');
+  if (body.length > MAX_BODY) return echec(res, 400, req, 'message.tropLong', { max: MAX_BODY });
 
   const recipient = db
     .prepare('SELECT id, pseudo, city FROM users WHERE pseudo = ?')
     .get(String(req.body?.to ?? '').trim());
-  if (!recipient) return res.status(404).json({ error: 'Ce destinataire n’a pas de boîte aux lettres.' });
+  if (!recipient) return echec(res, 404, req, 'message.destinataireInconnu');
 
   const from = findCity(req.body?.fromCity || req.user.city);
   const to = findCity(req.body?.toCity || recipient.city);
-  if (!from) return res.status(400).json({ error: 'Indiquez d’où part l’escargot.' });
-  if (!to) return res.status(400).json({ error: 'Indiquez où vit le destinataire.' });
+  if (!from) return echec(res, 400, req, 'message.departManquant');
+  if (!to) return echec(res, 400, req, 'message.arriveeManquante');
 
   const { scale } = findScale(req.body?.scale);
   const distanceM = Math.max(MIN_DISTANCE_M, haversine(from, to));
@@ -87,7 +86,7 @@ messageRoutes.get('/', async (req, res) => {
 messageRoutes.get('/:id', (req, res) => {
   const row = getMessageRow(req.params.id);
   if (!row || (row.recipient_id !== req.user.id && row.sender_id !== req.user.id)) {
-    return res.status(404).json({ error: 'Message introuvable.' });
+    return echec(res, 404, req, 'message.introuvable');
   }
   res.json(serialize(row, req.user.id));
 });
@@ -95,12 +94,8 @@ messageRoutes.get('/:id', (req, res) => {
 /** Deplier la lettre : n a de sens qu une fois l escargot arrive. */
 messageRoutes.post('/:id/read', (req, res) => {
   const row = getMessageRow(req.params.id);
-  if (!row || row.recipient_id !== req.user.id) {
-    return res.status(404).json({ error: 'Message introuvable.' });
-  }
-  if (row.status !== 'delivered') {
-    return res.status(409).json({ error: 'L’escargot n’est pas encore arrivé.' });
-  }
+  if (!row || row.recipient_id !== req.user.id) return echec(res, 404, req, 'message.introuvable');
+  if (row.status !== 'delivered') return echec(res, 409, req, 'message.pasArrive');
   if (!row.read_at) {
     db.prepare('UPDATE messages SET read_at = ? WHERE id = ?').run(Date.now(), row.id);
   }

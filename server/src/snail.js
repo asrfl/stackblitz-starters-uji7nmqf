@@ -10,10 +10,10 @@ export const SNAIL_SPEED_MPS = SNAIL_SPEED_M_PER_HOUR / 3600; // ~0.01333 m/s
  * rampee sans toucher a la vitesse de l'escargot, qui reste sacree.
  */
 export const SCALES = [
-  { id: 'reel', label: 'Grandeur nature', hint: 'La vraie distance. Des mois de patience.', scale: 1 },
-  { id: 'jardin', label: 'Échelle jardin', hint: 'Un millième du trajet. Quelques heures.', scale: 1 / 1000 },
-  { id: 'potager', label: 'Échelle potager', hint: 'Un dix-millième. Une petite heure.', scale: 1 / 10000 },
-  { id: 'demo', label: 'Échelle bocal', hint: 'Pour les impatients. Quelques minutes.', scale: 1 / 100000 },
+  { id: 'reel', scale: 1 },
+  { id: 'jardin', scale: 1 / 1000 },
+  { id: 'potager', scale: 1 / 10000 },
+  { id: 'demo', scale: 1 / 100000 },
 ];
 
 export const DEFAULT_SCALE_ID = 'potager';

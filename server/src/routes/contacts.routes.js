@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { requireUser } from '../auth.js';
+import { echec } from '../i18n.js';
 
 export const contactRoutes = Router();
 
@@ -20,14 +21,12 @@ contactRoutes.get('/', (req, res) => {
 contactRoutes.post('/', (req, res) => {
   const pseudo = String(req.body?.pseudo ?? '').trim();
   const target = db.prepare('SELECT id, pseudo, city FROM users WHERE pseudo = ?').get(pseudo);
-  if (!target) return res.status(404).json({ error: 'Personne de ce nom dans le jardin.' });
-  if (target.id === req.user.id) {
-    return res.status(400).json({ error: 'Vous êtes déjà en très bons termes avec vous-même.' });
-  }
+  if (!target) return echec(res, 404, req, 'contact.inconnu');
+  if (target.id === req.user.id) return echec(res, 400, req, 'contact.soiMeme');
   const exists = db
     .prepare('SELECT 1 FROM contacts WHERE owner_id = ? AND contact_id = ?')
     .get(req.user.id, target.id);
-  if (exists) return res.status(409).json({ error: 'Ce contact est déjà dans votre carnet.' });
+  if (exists) return echec(res, 409, req, 'contact.doublon');
 
   const info = db
     .prepare('INSERT INTO contacts (owner_id, contact_id, created_at) VALUES (?, ?, ?)')
@@ -39,6 +38,6 @@ contactRoutes.delete('/:id', (req, res) => {
   const info = db
     .prepare('DELETE FROM contacts WHERE id = ? AND owner_id = ?')
     .run(req.params.id, req.user.id);
-  if (!info.changes) return res.status(404).json({ error: 'Contact introuvable.' });
+  if (!info.changes) return echec(res, 404, req, 'contact.introuvable');
   res.json({ ok: true });
 });

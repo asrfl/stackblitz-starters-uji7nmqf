@@ -2,6 +2,7 @@ import Compteur from './Compteur';
 import CarteEscargot from './CarteEscargot';
 import { Escargot, Feuille, Goutte, Brin } from './Illustrations';
 import { formatDistance, formatDuration } from '../lib/format';
+import { useI18n } from '../lib/i18n';
 import { Progression, Etat } from './Lettre';
 
 function Regle({ illustration, titre, texte }) {
@@ -15,6 +16,8 @@ function Regle({ illustration, titre, texte }) {
 }
 
 export default function Accueil({ user, stats, config, messages, cities, onVue, onSelection }) {
+  const { t, langue, intl } = useI18n();
+
   const enRoute = messages.recus
     .concat(messages.envoyes)
     .filter((m) => m.status === 'transit')
@@ -26,20 +29,19 @@ export default function Accueil({ user, stats, config, messages, cities, onVue, 
       <section className="feuille relative overflow-hidden rounded-petale px-8 py-10 sm:px-12">
         <Brin className="absolute -right-4 top-6 h-14 w-36 rotate-6 text-sauge opacity-35" />
         <Escargot className="pointer-events-none absolute -bottom-3 right-10 hidden h-36 w-52 animate-derive text-encre-fonce/20 lg:block" />
-        <p className="etiquette">Bonjour {user.pseudo}, il bruine sur le jardin.</p>
+        <p className="etiquette">{t('accueil.salut', { pseudo: user.pseudo })}</p>
         <h1 className="mt-2 max-w-2xl font-main text-[3rem] leading-[1.02] text-encre-fonce sm:text-[3.8rem]">
-          Vos mots avancent à {config.speedMetersPerHour} mètres par heure.
+          {t('accueil.titre', { vitesse: config.speedMetersPerHour })}
         </h1>
         <p className="mt-4 max-w-xl font-corps text-[1.05rem] leading-[1.9] text-encre">
-          C’est peu. C’est exactement la vitesse d’un escargot de jardin qui ne se presse
-          pas, et c’est tout l’intérêt : le temps de l’attente fait partie du message.
+          {t('accueil.chapeau')}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <button onClick={() => onVue('ecrire')} className="bouton">
-            Confier un message
+            {t('accueil.confier')}
           </button>
           <button onClick={() => onVue('boite')} className="bouton-sauge">
-            Voir ma boîte
+            {t('accueil.voirBoite')}
           </button>
         </div>
       </section>
@@ -50,7 +52,7 @@ export default function Accueil({ user, stats, config, messages, cities, onVue, 
         <section className="feuille rounded-feuille px-7 py-7">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-titre text-xl">
-              {vedette ? 'Le plus avancé de vos escargots' : 'Aucun escargot sur la route'}
+              {vedette ? t('accueil.vedette') : t('accueil.aucun')}
             </h2>
             {vedette && <Etat message={vedette} />}
           </div>
@@ -67,11 +69,16 @@ export default function Accueil({ user, stats, config, messages, cities, onVue, 
                 <CarteEscargot message={vedette} cities={cities} className="h-52 w-full sm:h-72" />
               </div>
               <p className="etiquette mt-3">
-                {vedette.from.city} → {vedette.to.city} ·{' '}
-                {formatDistance(vedette.distanceM * vedette.progress)} parcourus ·{' '}
-                {vedette.hibernating
-                  ? 'en hibernation'
-                  : `encore ${formatDuration(vedette.remainingMs)}`}
+                {t('accueil.resume', {
+                  depart: vedette.from.city,
+                  arrivee: vedette.to.city,
+                  distance: formatDistance(vedette.distanceM * vedette.progress, intl),
+                  reste: vedette.hibernating
+                    ? t('accueil.resumeHibernation')
+                    : t('accueil.resumeReste', {
+                        duree: formatDuration(vedette.remainingMs, langue),
+                      }),
+                })}
               </p>
               <div className="mt-3">
                 <Progression message={vedette} />
@@ -80,31 +87,29 @@ export default function Accueil({ user, stats, config, messages, cities, onVue, 
           ) : (
             <div className="mt-6 text-center">
               <Escargot className="mx-auto h-20 w-28 animate-derive text-encre-fonce opacity-55" />
-              <p className="etiquette mt-3">
-                Le jardin est calme. Confiez un message pour animer la carte.
-              </p>
+              <p className="etiquette mt-3">{t('accueil.calme')}</p>
             </div>
           )}
         </section>
       </div>
 
       <section>
-        <h2 className="mb-5 font-titre text-2xl">Comment ça marche, au juste</h2>
+        <h2 className="mb-5 font-titre text-2xl">{t('accueil.commentTitre')}</h2>
         <ul className="grid gap-6 md:grid-cols-3">
           <Regle
             illustration={<Escargot className="h-10 w-16 text-encre-fonce" />}
-            titre="Une vitesse honnête"
-            texte={`${config.speedMetersPerHour} mètres par heure, jamais plus. Sur la vraie distance, Paris — Marseille demanderait un an et demi : les échelles réduites replient la carte sans jamais presser la bête.`}
+            titre={t('accueil.regle1Titre')}
+            texte={t('accueil.regle1', { vitesse: config.speedMetersPerHour })}
           />
           <Regle
             illustration={<Goutte className="h-10 w-8 text-pluie" />}
-            titre="Il hiberne au froid"
-            texte={`Sous ${config.hibernationTempC} °C sur son trajet, l’escargot s’enroule et attend. La sieste suspend le compteur : elle rallonge l’arrivée, elle ne raccourcit pas la route.`}
+            titre={t('accueil.regle2Titre')}
+            texte={t('accueil.regle2', { seuil: config.hibernationTempC })}
           />
           <Regle
             illustration={<Feuille className="h-10 w-8 text-sauge" />}
-            titre="Parfois il s’en va"
-            texte={`${Math.round(config.lostProbability * 100)} escargots sur cent quittent la route en chemin, sans prévenir. Le message ne sera jamais remis. C’est le risque du courrier vivant.`}
+            titre={t('accueil.regle3Titre')}
+            texte={t('accueil.regle3', { pourcent: Math.round(config.lostProbability * 100) })}
           />
         </ul>
       </section>

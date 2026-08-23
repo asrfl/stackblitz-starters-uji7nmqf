@@ -4,11 +4,22 @@ export const readToken = () => localStorage.getItem(TOKEN_KEY);
 export const writeToken = (t) =>
   t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
 
+/**
+ * Langue courante, poussée par le fournisseur i18n. Les messages d'erreur et
+ * les libellés d'échelle arrivent du serveur déjà traduits, sans que chaque
+ * appel ait à la passer en paramètre.
+ */
+let langueCourante = 'fr';
+export const setLangueApi = (code) => {
+  langueCourante = code;
+};
+
 async function request(path, { method = 'GET', body } = {}) {
   const token = readToken();
   const res = await fetch(`/api${path}`, {
     method,
     headers: {
+      'accept-language': langueCourante,
       ...(body ? { 'content-type': 'application/json' } : {}),
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
@@ -17,8 +28,9 @@ async function request(path, { method = 'GET', body } = {}) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = new Error(data.error || 'Le facteur n’a pas répondu.');
+    const err = new Error(data.error || 'Escargot Postal');
     err.status = res.status;
+    err.code = data.code; // code stable, si l'appelant préfère décider lui-même
     throw err;
   }
   return data;

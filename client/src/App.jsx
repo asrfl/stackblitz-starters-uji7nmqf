@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, readToken, writeToken } from './lib/api';
+import { api, readToken, setLangueApi, writeToken } from './lib/api';
+import { FournisseurI18n, useI18n } from './lib/i18n';
 import Portail from './components/Portail';
 import Entete from './components/Entete';
 import Accueil from './components/Accueil';
@@ -8,11 +9,12 @@ import Carnet from './components/Carnet';
 import BoiteAuxLettres from './components/BoiteAuxLettres';
 import { Escargot } from './components/Illustrations';
 
-/** Rythme du rafraichissement : un escargot n a pas besoin de websockets. */
+/** Rythme du rafraîchissement : un escargot n'a pas besoin de websockets. */
 const POLL_MS = 7000;
 const VIDE = { recus: [], envoyes: [] };
 
-export default function App() {
+function Jardin() {
+  const { t, langue } = useI18n();
   const [pret, setPret] = useState(false);
   const [user, setUser] = useState(null);
   const [config, setConfig] = useState(null);
@@ -23,8 +25,16 @@ export default function App() {
   const [vue, setVue] = useState('accueil');
   const [selection, setSelection] = useState(null);
 
-  // Reference : ce qui ne bouge jamais (villes, echelles, seuils).
+  // Le client HTTP doit connaître la langue avant le premier appel : les
+  // erreurs et les libellés d'échelle arrivent traduits du serveur.
   useEffect(() => {
+    setLangueApi(langue);
+  }, [langue]);
+
+  // Référence : villes, échelles, seuils. Rechargé quand la langue change,
+  // parce que les libellés d'échelle en dépendent.
+  useEffect(() => {
+    setLangueApi(langue);
     Promise.all([api.config(), api.cities(), api.stats()])
       .then(([c, v, s]) => {
         setConfig(c);
@@ -33,7 +43,7 @@ export default function App() {
       })
       .catch(() => {})
       .finally(() => setPret(true));
-  }, []);
+  }, [langue]);
 
   // Reprise de session : le jeton vit dans le navigateur.
   useEffect(() => {
@@ -52,7 +62,7 @@ export default function App() {
     api.contacts().then(setContacts).catch(() => {});
   }, []);
 
-  // Sondage regulier : c est la que les escargots avancent a l ecran.
+  // Sondage régulier : c'est là que les escargots avancent à l'écran.
   useEffect(() => {
     if (!user) {
       setMessages(VIDE);
@@ -65,7 +75,7 @@ export default function App() {
     return () => clearInterval(id);
   }, [user, rafraichir, rechargerContacts]);
 
-  // Le compteur communautaire continue de tourner meme sans etre connecte.
+  // Le compteur communautaire continue de tourner même sans être connecté.
   useEffect(() => {
     if (user) return;
     const id = setInterval(() => api.stats().then(setStats).catch(() => {}), POLL_MS);
@@ -88,16 +98,18 @@ export default function App() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <Escargot className="h-16 w-24 animate-derive text-encre-fonce opacity-70" />
-        <p className="etiquette">on ouvre le bureau de poste…</p>
+        <p className="etiquette">{t('commun.chargement')}</p>
       </div>
     );
   }
 
   if (!user) {
-    return <Portail cities={cities} stats={stats} onEntre={setUser} />;
+    return <Portail cities={cities} stats={stats} config={config} onEntre={setUser} />;
   }
 
-  const enTransit = messages.recus.concat(messages.envoyes).filter((m) => m.status === 'transit').length;
+  const enTransit = messages.recus
+    .concat(messages.envoyes)
+    .filter((m) => m.status === 'transit').length;
 
   return (
     <div className="min-h-screen">
@@ -134,6 +146,7 @@ export default function App() {
           <BoiteAuxLettres
             messages={messages}
             cities={cities}
+            config={config}
             selection={selection}
             onSelection={setSelection}
             onRafraichir={rafraichir}
@@ -154,10 +167,23 @@ export default function App() {
       <footer className="mx-auto max-w-6xl px-6 pb-12 pt-4">
         <span className="filet mb-4" />
         <p className="etiquette text-center">
-          Escargot Postal — {config.speedMetersPerHour} m/h, par tous les temps.
-          Météo : {config.weatherMode === 'open-meteo' || config.weatherMode === 'auto' ? 'Open-Meteo' : 'simulée'}.
+          {t('commun.pied', {
+            vitesse: config.speedMetersPerHour,
+            source:
+              config.weatherMode === 'simule' || config.weatherMode === 'givre'
+                ? t('commun.meteoSimulee')
+                : 'Open-Meteo',
+          })}
         </p>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <FournisseurI18n>
+      <Jardin />
+    </FournisseurI18n>
   );
 }

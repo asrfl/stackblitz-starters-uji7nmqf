@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { hashPin, verifyPin, newToken, isValidPseudo, isValidPin, requireUser } from '../auth.js';
 import { findCity } from '../cities.js';
+import { echec } from '../i18n.js';
 
 export const authRoutes = Router();
 
@@ -17,17 +18,12 @@ authRoutes.post('/register', (req, res) => {
   const pin = String(req.body?.pin ?? '');
   const city = req.body?.city ? findCity(req.body.city) : null;
 
-  if (!isValidPseudo(pseudo)) {
-    return res.status(400).json({ error: 'Un pseudo de 2 à 24 caractères, s’il vous plaît.' });
-  }
-  if (!isValidPin(pin)) {
-    return res.status(400).json({ error: 'Le code doit faire exactement 4 chiffres.' });
-  }
-  if (req.body?.city && !city) {
-    return res.status(400).json({ error: 'Cette ville n’est pas sur notre carte.' });
-  }
+  if (!isValidPseudo(pseudo)) return echec(res, 400, req, 'auth.pseudoInvalide');
+  if (!isValidPin(pin)) return echec(res, 400, req, 'auth.codeInvalide');
+  if (req.body?.city && !city) return echec(res, 400, req, 'ville.inconnue');
+
   const taken = db.prepare('SELECT 1 FROM users WHERE pseudo = ?').get(pseudo);
-  if (taken) return res.status(409).json({ error: 'Ce pseudo a déjà une boîte aux lettres.' });
+  if (taken) return echec(res, 409, req, 'auth.pseudoPris');
 
   const token = newToken();
   const info = db
@@ -43,9 +39,7 @@ authRoutes.post('/login', (req, res) => {
   const row = db.prepare('SELECT * FROM users WHERE pseudo = ?').get(pseudo);
 
   // Meme reponse dans les deux cas : on n indique pas quels pseudos existent.
-  if (!row || !verifyPin(pin, row.pin_hash)) {
-    return res.status(401).json({ error: 'Pseudo ou code inconnu.' });
-  }
+  if (!row || !verifyPin(pin, row.pin_hash)) return echec(res, 401, req, 'auth.identifiants');
 
   const token = newToken();
   db.prepare('UPDATE users SET token = ? WHERE id = ?').run(token, row.id);
@@ -56,7 +50,7 @@ authRoutes.get('/me', requireUser, (req, res) => res.json(publicUser(req.user)))
 
 authRoutes.patch('/me', requireUser, (req, res) => {
   const city = findCity(req.body?.city);
-  if (!city) return res.status(400).json({ error: 'Cette ville n’est pas sur notre carte.' });
+  if (!city) return echec(res, 400, req, 'ville.inconnue');
   db.prepare('UPDATE users SET city = ? WHERE id = ?').run(city.name, req.user.id);
   res.json(publicUser({ ...req.user, city: city.name }));
 });

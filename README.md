@@ -8,6 +8,8 @@ Vous écrivez, vous choisissez un destinataire, et un escargot part avec votre
 mot. Il rampe. Il s'arrête quand il gèle. Parfois il ne va jamais au bout.
 Le destinataire ne peut rien lire avant son arrivée.
 
+Disponible en **français et en anglais**, interface et API comprises.
+
 ---
 
 ## Lancer le projet
@@ -41,13 +43,15 @@ client/                 React + Vite + Tailwind
     lib/
       api.js            client HTTP + jeton de session
       geo.js            projection de la carte, contour de la France
-      format.js         mise en forme française (distances, durées)
+      format.js         distances, durées et dates selon la langue active
+      i18n.jsx          catalogue FR/EN + contexte React
 server/                 Node + Express + better-sqlite3
   src/
     db.js               schéma SQLite
     cities.js           table statique de villes françaises + haversine
     snail.js            physique de l'escargot (vitesse, échelles, fugue)
     weather.js          météo Open-Meteo, avec repli sur une simulation
+    i18n.js             catalogue des messages serveur + négociation de langue
     messages.js         sérialisation + ticker (hibernation, arrivées)
     routes/             auth, contacts, messages, méta
   data/                 base SQLite (créée au premier lancement, non versionnée)
@@ -107,6 +111,37 @@ Le compteur communautaire de la page d'accueil additionne les distances
 parcourues par tous les escargots. Il est recalculé à chaque tour plutôt
 qu'accumulé, pour ne jamais dériver.
 
+## Les langues
+
+L'interface et les réponses de l'API existent en français et en anglais. La
+langue se choisit dans l'en-tête (`FR` / `EN`) ; au premier passage elle est
+devinée depuis `navigator.languages`, puis retenue dans le navigateur.
+
+Ce que la langue change : tous les textes, mais aussi les séparateurs
+décimaux (`44,7 km` contre `44.7 km`), l'ordre et le nom des dates, et
+l'attribut `lang` du document. Les noms de villes, eux, restent français —
+ce sont des noms propres.
+
+Côté serveur, la langue vient de l'en-tête `Accept-Language` (pondérations
+`q=` comprises), qu'un paramètre `?lang=fr|en` peut forcer — pratique en
+curl. Une langue inconnue retombe sur le français. Les erreurs portent le
+texte **et** un code stable, pour un client qui préfère formuler lui-même :
+
+```bash
+curl -X POST localhost:3001/api/auth/register -H 'content-type: application/json' \
+     -H 'accept-language: en' -d '{"pseudo":"x","pin":"1"}'
+# {"error":"A name of 2 to 24 characters, please.","code":"auth.pseudoInvalide"}
+```
+
+### Ajouter une langue
+
+1. `client/src/lib/i18n.jsx` : une entrée dans `LANGUES`, un bloc de plus
+   dans `DICTIONNAIRES` (une clé manquante retombe sur le français).
+2. `server/src/i18n.js` : le code dans `LANGUES`, les traductions dans
+   `CATALOGUE`.
+
+Rien d'autre : le sélecteur, l'attribut `lang` et les formats suivent.
+
 ## L'API
 
 Toutes les routes authentifiées attendent un en-tête
@@ -135,6 +170,11 @@ Le corps d'un message n'est jamais renvoyé au destinataire tant que
 l'escargot n'est pas arrivé — la protection est côté serveur, pas seulement
 dans l'affichage.
 
+Une erreur a toujours la forme `{ error, code }` : `error` est rédigé dans la
+langue négociée, `code` ne bouge jamais. Un message sérialisé porte `scaleId`
+(`jardin`, `potager`…) et non un libellé : c'est le client qui l'habille, avec
+les libellés traduits que `/api/config` lui a donnés.
+
 ### Authentification
 
 Volontairement minimale : un pseudo et un code à 4 chiffres. Le code est haché
@@ -151,10 +191,12 @@ pour un jeu entre amis, ce n'est pas un modèle à copier pour du sérieux.
 | `WEATHER_BIAS` | `0` | décalage de température de la simulation |
 | `API_URL` | `http://localhost:3001` | cible du proxy Vite |
 
+La langue ne se configure pas au lancement : elle est négociée par requête.
+
 ## Direction artistique
 
 Un jardin anglais pluvieux au petit matin, façon carnet d'illustrateur
-botanique. Palette crème / vert sauge / terre cuite / rose poudré, sans blanc
+botanique — la même dans les deux langues. Palette crème / vert sauge / terre cuite / rose poudré, sans blanc
 ni noir purs. Polices Caveat, Playfair Display et Lora, **embarquées avec
 l'application** (`@fontsource`) : pas de CDN, rendu identique hors ligne.
 

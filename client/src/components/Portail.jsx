@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { api, writeToken } from '../lib/api';
+import { useI18n } from '../lib/i18n';
 import { Escargot, Bruine, Feuille } from './Illustrations';
+import SelecteurLangue from './SelecteurLangue';
 import Compteur from './Compteur';
 
-export default function Portail({ cities, stats, onEntre }) {
+export default function Portail({ cities, stats, config, onEntre }) {
+  const { t } = useI18n();
   const [mode, setMode] = useState('ouvrir');
   const [pseudo, setPseudo] = useState('');
   const [pin, setPin] = useState('');
@@ -12,6 +15,7 @@ export default function Portail({ cities, stats, onEntre }) {
   const [occupe, setOccupe] = useState(false);
 
   const nouvelle = mode === 'ouvrir';
+  const vitesse = config?.speedMetersPerHour ?? 48;
 
   async function envoyer(e) {
     e.preventDefault();
@@ -30,14 +34,22 @@ export default function Portail({ cities, stats, onEntre }) {
     }
   }
 
+  // L'accroche met la vitesse en gras au milieu de la phrase : on découpe
+  // la traduction sur ce fragment plutôt que d'y injecter du balisage.
+  const accroche = t('portail.accroche', { vitesse });
+  const gras = t('portail.accrocheGras', { vitesse });
+  const [avant, apres] = accroche.includes(gras) ? accroche.split(gras) : [accroche, ''];
+
   return (
     <main className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.15fr_1fr]">
       <Bruine className="opacity-70" />
 
+      <SelecteurLangue className="absolute right-6 top-6 z-10" />
+
       <div className="relative">
         <p className="etiquette mb-2 flex items-center gap-2">
           <Feuille className="h-5 w-4 text-sauge" />
-          bureau de poste du jardin, ouvert par tous les temps
+          {t('portail.enseigne')}
         </p>
         <h1 className="font-main text-[4.4rem] leading-[0.92] text-encre-fonce sm:text-[5.6rem]">
           Escargot
@@ -48,12 +60,12 @@ export default function Portail({ cities, stats, onEntre }) {
         <Escargot className="my-6 h-24 w-36 animate-derive text-encre-fonce" />
 
         <p className="max-w-lg font-corps text-[1.08rem] leading-[1.9] text-encre">
-          Vos mots voyagent à <strong className="font-semibold text-encre-fonce">48 mètres par heure</strong>,
-          la vitesse honnête d’un escargot de jardin. Ils traversent la France à leur
-          rythme, s’arrêtent quand il gèle, et arrivent quand ils arrivent.
+          {avant}
+          <strong className="font-semibold text-encre-fonce">{gras}</strong>
+          {apres}
         </p>
         <p className="mt-3 max-w-lg font-corps italic leading-[1.9] text-encre-pale">
-          Écrivez le matin, relisez-vous à l’automne.
+          {t('portail.murmure')}
         </p>
 
         <div className="mt-10 max-w-md">
@@ -64,8 +76,8 @@ export default function Portail({ cities, stats, onEntre }) {
       <form onSubmit={envoyer} className="feuille relative rounded-feuille px-8 py-9 sm:px-10">
         <div className="mb-7 flex gap-2">
           {[
-            ['ouvrir', 'Ouvrir une boîte'],
-            ['retrouver', 'Retrouver la mienne'],
+            ['ouvrir', t('portail.ouvrir')],
+            ['retrouver', t('portail.retrouver')],
           ].map(([id, label]) => (
             <button
               key={id}
@@ -86,12 +98,12 @@ export default function Portail({ cities, stats, onEntre }) {
         </div>
 
         <label className="block">
-          <span className="etiquette">Votre pseudo</span>
+          <span className="etiquette">{t('portail.pseudo')}</span>
           <input
             className="champ mt-1.5"
             value={pseudo}
             onChange={(e) => setPseudo(e.target.value)}
-            placeholder="Colimacon"
+            placeholder={t('portail.pseudoExemple')}
             autoComplete="username"
             maxLength={24}
             required
@@ -99,7 +111,7 @@ export default function Portail({ cities, stats, onEntre }) {
         </label>
 
         <label className="mt-5 block">
-          <span className="etiquette">Code à 4 chiffres</span>
+          <span className="etiquette">{t('portail.code')}</span>
           <input
             className="champ mt-1.5 font-titre tracking-[0.6em]"
             value={pin}
@@ -113,7 +125,7 @@ export default function Portail({ cities, stats, onEntre }) {
 
         {nouvelle && (
           <label className="mt-5 block animate-eclot">
-            <span className="etiquette">D’où écrivez-vous ?</span>
+            <span className="etiquette">{t('portail.ou')}</span>
             <select className="champ mt-1.5" value={ville} onChange={(e) => setVille(e.target.value)}>
               {cities.map((c) => (
                 <option key={c.name} value={c.name}>
@@ -121,9 +133,7 @@ export default function Portail({ cities, stats, onEntre }) {
                 </option>
               ))}
             </select>
-            <span className="etiquette mt-1.5 block text-encre-pale/90">
-              Sert à calculer la distance que vos escargots devront ramper.
-            </span>
+            <span className="etiquette mt-1.5 block text-encre-pale/90">{t('portail.ouAide')}</span>
           </label>
         )}
 
@@ -134,12 +144,10 @@ export default function Portail({ cities, stats, onEntre }) {
         )}
 
         <button className="bouton mt-7 w-full" disabled={occupe || pin.length !== 4 || !pseudo.trim()}>
-          {occupe ? 'un instant…' : nouvelle ? 'Ouvrir ma boîte aux lettres' : 'Entrer'}
+          {occupe ? t('portail.patiente') : nouvelle ? t('portail.valider') : t('portail.entrer')}
         </button>
 
-        <p className="etiquette mt-4 text-center">
-          Pas de mot de passe compliqué, pas de courriel. Juste un nom et quatre chiffres.
-        </p>
+        <p className="etiquette mt-4 text-center">{t('portail.rassurance')}</p>
       </form>
     </main>
   );

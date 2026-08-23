@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { formatDate, formatDistance, formatDuration, formatPercent, formatTemp } from '../lib/format';
+import { useI18n } from '../lib/i18n';
 import { Goutte } from './Illustrations';
 
 /** Barre de progression : un ruban de bave qui gagne du terrain. */
 export function Progression({ message }) {
+  const { t, langue, intl } = useI18n();
   const pct = Math.min(100, message.progress * 100);
+
   return (
     <div className="w-full">
       <div className="relative h-3 w-full overflow-hidden rounded-full bg-papier-ombre/70 shadow-creuse">
@@ -20,13 +23,15 @@ export function Progression({ message }) {
           }}
         />
       </div>
-      <div className="mt-1.5 flex items-baseline justify-between">
-        <span className="etiquette">{formatPercent(message.progress)} du chemin</span>
+      <div className="mt-1.5 flex items-baseline justify-between gap-3">
         <span className="etiquette">
+          {t('lettre.progression', { pourcent: formatPercent(message.progress, intl) })}
+        </span>
+        <span className="etiquette text-right">
           {message.status === 'transit'
             ? message.hibernating
-              ? 'en pause'
-              : `encore ${formatDuration(message.remainingMs)}`
+              ? t('lettre.enPause')
+              : t('lettre.encore', { duree: formatDuration(message.remainingMs, langue) })
             : ''}
         </span>
       </div>
@@ -36,46 +41,51 @@ export function Progression({ message }) {
 
 /** Bandeau d'hibernation : l'escargot a froid, il attend le redoux. */
 export function Hibernation({ message }) {
+  const { t, intl } = useI18n();
   if (!message.hibernating || !message.weather) return null;
+
   return (
     <div className="relative mt-3 overflow-hidden rounded-galet border border-pluie/50 bg-pluie-pale/40 px-4 py-3">
       <Goutte className="absolute -right-1 -top-1 h-10 w-8 text-pluie opacity-50" />
       <p className="font-corps text-[0.92rem] leading-relaxed text-pluie-fonce">
-        🐌 L’escargot fait une pause, il fait trop froid ({formatTemp(message.weather.tempC)} à{' '}
-        {message.weather.place}).
+        {t('lettre.hibernation', {
+          temp: formatTemp(message.weather.tempC, intl),
+          lieu: message.weather.place,
+        })}
       </p>
-      <p className="etiquette mt-1 text-pluie-fonce/80">
-        Il repartira au redoux. Sa sieste ne compte pas dans le temps de trajet.
-      </p>
+      <p className="etiquette mt-1 text-pluie-fonce/80">{t('lettre.hibernationNote')}</p>
     </div>
   );
 }
 
 const ETATS = {
-  transit: { emoji: '🐌', mot: 'en chemin', couleur: 'text-sauge-fonce bg-sauge-brume/70 border-sauge-pale' },
-  delivered: { emoji: '📬', mot: 'arrivé', couleur: 'text-corail-fonce bg-corail-pale/45 border-corail-pale' },
-  lost: { emoji: '🐌💨', mot: 'parti voir ailleurs', couleur: 'text-encre-pale bg-papier-creuse border-encre-pale/40' },
+  transit: { emoji: '🐌', cle: 'lettre.etatTransit', couleur: 'text-sauge-fonce bg-sauge-brume/70 border-sauge-pale' },
+  delivered: { emoji: '📬', cle: 'lettre.etatArrive', couleur: 'text-corail-fonce bg-corail-pale/45 border-corail-pale' },
+  lost: { emoji: '🐌💨', cle: 'lettre.etatPerdu', couleur: 'text-encre-pale bg-papier-creuse border-encre-pale/40' },
 };
 
 export function Etat({ message }) {
+  const { t } = useI18n();
   const etat = message.hibernating
-    ? { emoji: '❄️', mot: 'en hibernation', couleur: 'text-pluie-fonce bg-pluie-pale/50 border-pluie/50' }
+    ? { emoji: '❄️', cle: 'lettre.etatHibernation', couleur: 'text-pluie-fonce bg-pluie-pale/50 border-pluie/50' }
     : ETATS[message.status];
+
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-caillou border px-2.5 py-1 font-main text-[1.05rem] leading-none ${etat.couleur}`}
     >
       <span aria-hidden="true">{etat.emoji}</span>
-      {etat.mot}
+      {t(etat.cle)}
     </span>
   );
 }
 
 /**
- * La lettre elle-meme. Fermee, on ne voit que l'enveloppe ; a l'ouverture
- * le papier se deplie vers le bas et les plis s'effacent doucement.
+ * La lettre elle-même. Fermée, on ne voit que l'enveloppe ; à l'ouverture
+ * le papier se déplie vers le bas et les plis s'effacent doucement.
  */
 export function LettreDepliee({ message, autoOpen = false, onOpen }) {
+  const { t, intl } = useI18n();
   const [ouverte, setOuverte] = useState(autoOpen);
 
   useEffect(() => {
@@ -109,9 +119,12 @@ export function LettreDepliee({ message, autoOpen = false, onOpen }) {
             />
           </svg>
           <span>
-            <span className="block font-titre text-lg text-encre-fonce">Déplier la lettre</span>
+            <span className="block font-titre text-lg text-encre-fonce">{t('lettre.deplier')}</span>
             <span className="etiquette">
-              {message.length} caractères portés sur {formatDistance(message.distanceM)}
+              {t('lettre.deplierNote', {
+                n: message.length,
+                distance: formatDistance(message.distanceM, intl),
+              })}
             </span>
           </span>
         </span>
@@ -132,15 +145,21 @@ export function LettreDepliee({ message, autoOpen = false, onOpen }) {
           style={{ animation: 'luisance 1.8s ease-in-out 1' }}
         />
         <p className="etiquette mb-3">
-          {message.from.city}, le {formatDate(message.departedAt)}
+          {t('lettre.entete', {
+            ville: message.from.city,
+            date: formatDate(message.departedAt, intl),
+          })}
         </p>
         <p className="whitespace-pre-wrap font-corps text-[1.05rem] leading-[1.85] text-encre-fonce">
           {message.body}
         </p>
         <span className="filet my-5" />
         <p className="etiquette">
-          Remis par escargot le {formatDate(message.deliveredAt)} — {formatDistance(message.distanceM)}{' '}
-          à vol d’oiseau, {formatDistance(message.crawlDistanceM)} réellement rampés.
+          {t('lettre.pied', {
+            date: formatDate(message.deliveredAt, intl),
+            distance: formatDistance(message.distanceM, intl),
+            rampee: formatDistance(message.crawlDistanceM, intl),
+          })}
         </p>
       </div>
     </div>

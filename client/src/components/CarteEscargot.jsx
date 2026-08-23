@@ -1,5 +1,6 @@
 import { useId, useMemo } from 'react';
 import { FRANCE_PATH, CORSE_PATH, VIEW, project, lerp, headingDeg } from '../lib/geo';
+import { useI18n } from '../lib/i18n';
 import { Escargot } from './Illustrations';
 
 /**
@@ -63,6 +64,7 @@ function cadrer(a, b) {
 }
 
 export default function CarteEscargot({ message, cities = [], className = '' }) {
+  const { t } = useI18n();
   const uid = useId().replace(/:/g, '');
   const perdu = message.status === 'lost';
   const arrive = message.status === 'delivered';
@@ -172,9 +174,11 @@ export default function CarteEscargot({ message, cities = [], className = '' }) 
       viewBox={`${box.x.toFixed(1)} ${box.y.toFixed(1)} ${box.w.toFixed(1)} ${box.h.toFixed(1)}`}
       className={className}
       role="img"
-      aria-label={`Trajet de ${message.from.city} à ${message.to.city}, ${Math.round(
-        message.progress * 100
-      )} pour cent parcourus`}
+      aria-label={t('carte.resume', {
+        depart: message.from.city,
+        arrivee: message.to.city,
+        pourcent: Math.round(message.progress * 100),
+      })}
     >
       <defs>
         {/* La bave : nacrée, translucide, elle s'estompe vers le point de départ. */}
@@ -327,12 +331,12 @@ export default function CarteEscargot({ message, cities = [], className = '' }) 
         </g>
         {message.hibernating && (
           <text x={15 * z} y={-14 * z} fontSize={18 * z} className="font-main" fill="#6B838F">
-            zzz
+            {t('carte.dort')}
           </text>
         )}
         {perdu && (
           <text x={16 * z} y={-13 * z} fontSize={17 * z} className="font-main" fill="#BE6E60">
-            hop !
+            {t('carte.fugue')}
           </text>
         )}
       </g>
@@ -364,7 +368,7 @@ export default function CarteEscargot({ message, cities = [], className = '' }) 
             {...dansLeCadre(
               arrivee.x - perp.x * 34 * z,
               arrivee.y - perp.y * 34 * z + 7 * z,
-              'arrivé !',
+              t('carte.arrive'),
               21 * z
             )}
             textAnchor="middle"
@@ -372,7 +376,7 @@ export default function CarteEscargot({ message, cities = [], className = '' }) 
             className="font-main"
             fill="#4E6C53"
           >
-            arrivé !
+            {t('carte.arrive')}
           </text>
         )}
       </g>

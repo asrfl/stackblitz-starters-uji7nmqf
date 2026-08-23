@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { db } from './db.js';
+import { echec } from './i18n.js';
 
 /** PIN a 4 chiffres : hache avec sel (scrypt), jamais stocke en clair. */
 export function hashPin(pin, salt = crypto.randomBytes(16).toString('hex')) {
@@ -32,6 +33,6 @@ export function attachUser(req, _res, next) {
 }
 
 export function requireUser(req, res, next) {
-  if (!req.user) return res.status(401).json({ error: 'Il faut d’abord ouvrir sa boîte aux lettres.' });
+  if (!req.user) return echec(res, 401, req, 'auth.requise');
   next();
 }
